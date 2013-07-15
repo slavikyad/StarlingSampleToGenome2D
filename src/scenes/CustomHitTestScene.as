@@ -16,7 +16,7 @@ package scenes
 		{
 			super(p_name);
 
-			var description:String =
+			var description : String = "" +
 				"Pushing the bird only works when the touch occurs within a circle." +
 				"This can be accomplished by overriding the method hitTest.";
 

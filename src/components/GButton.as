@@ -22,6 +22,16 @@ package components
 
 		private const PAD : Number = 10;
 
+		public function get width() : Number
+		{
+			return bounds.width;
+		}
+
+		public function get height() : Number
+		{
+			return bounds.height;
+		}
+
 		public function set text(value : String) : void
 		{
 			createTextField();

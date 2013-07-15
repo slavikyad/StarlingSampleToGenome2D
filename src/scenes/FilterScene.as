@@ -2,7 +2,6 @@ package scenes
 {
 	import com.genome2d.components.renderables.GSprite;
 	import com.genome2d.components.renderables.GTextureText;
-	import com.genome2d.context.filters.GBrightPassFilter;
 	import com.genome2d.context.filters.GColorMatrixFilter;
 	import com.genome2d.context.filters.GDesaturateFilter;
 	import com.genome2d.context.filters.GFilter;
@@ -32,24 +31,18 @@ package scenes
 			mButton = GNodeFactory.createNodeWithComponent(GButton) as GButton;
 			mButton.setTextures(Assets.getTexture("ButtonNormal"));
 			mButton.setText("Switch Filter");
-//			mButton.node.transform.x = int(Constants.CenterX - mButton.width / 2);
-			mButton.node.transform.y = -140;
+			mButton.node.transform.y = 40 + ((mButton.height - core.stage.stageHeight) >> 1);
 			mButton.node.onMouseClick.add(onButtonTriggered);
 			addChild(mButton.node);
 
 			mImage = GNodeFactory.createNodeWithComponent(GSprite) as GSprite;
 			mImage.setTexture(Assets.getTexture("StarlingRocket"));
-//			mImage.x = int(Constants.CenterX - mImage.width / 2);
-//			mImage.y = 170;
 			addChild(mImage.node);
 
 			mInfoText = GNodeFactory.createNodeWithComponent(GTextureText) as GTextureText;
 			mInfoText.setTextureAtlas(Assets.getFontTexture("Ubuntu"));
-//			mInfoText.x = 10;
-			mInfoText.node.transform.y = 140;
+			mInfoText.node.transform.y = mImage.node.transform.y + mImage.getWorldBounds().height;
 			addChild(mInfoText.node);
-
-//			onButtonTriggered(null);
 		}
 
 		private function onButtonTriggered(signal : GMouseSignal) : void
@@ -58,16 +51,12 @@ package scenes
 			mFilterInfos.push(filterInfo);
 
 			mInfoText.text = filterInfo[0];
-//			mImage.filter  = filterInfo[1];
+			mInfoText.node.transform.x = - mInfoText.width >> 1;
 			mImage.node.postProcess = filterInfo[1];
 		}
 
 		private function initFilters():void
 		{
-//			var pp:GGlowPP=new GGlowPP(2,2,1);
-//			pp.color=0xff0000;
-//			sprite.node.postProcess=pp;
-
 			mFilterInfos = [
 				["Identity", new GFilterPP(Vector.<GFilter>([new GColorMatrixFilter()]))],
 				["Blur", new GBlurPP(1, 1)],
@@ -75,30 +64,99 @@ package scenes
 				["Glow", new GGlowPP(2, 2, 1)]
 			];
 
-//			var invertFilter:GColorMatrixFilter = new GColorMatrixFilter();
-//			invertFilter.invert();
-//			mFilterInfos.push(["Invert", invertFilter]);
-//
+			mFilterInfos.push(["Invert", getInvertPostProcess()]);
 			var grayscaleFilter:GDesaturateFilter = new GDesaturateFilter();
 			mFilterInfos.push(["Grayscale", new GFilterPP(Vector.<GFilter>([grayscaleFilter]))]);
-//
-//			var saturationFilter:ColorMatrixFilter = new ColorMatrixFilter();
-//			saturationFilter.adjustSaturation(1);
-//			mFilterInfos.push(["Saturation", saturationFilter]);
-//
-//			var contrastFilter:ColorMatrixFilter = new ColorMatrixFilter();
-//			contrastFilter.adjustContrast(0.75);
-//			mFilterInfos.push(["Contrast", contrastFilter]);
-//
-			var brightnessFilter:GBrightPassFilter = new GBrightPassFilter(-0.25);
-			mFilterInfos.push(["Brightness", new GFilterPP(Vector.<GFilter>([brightnessFilter]))]);
-//
-//			var hueFilter:ColorMatrixFilter = new ColorMatrixFilter();
-//			hueFilter.adjustHue(1);
-//			mFilterInfos.push(["Hue", hueFilter]);
-
-			var pixelateFilter:GPixelateFilter = new GPixelateFilter(4);
+			mFilterInfos.push(["Saturation", getSaturationPostProcess(1)]);
+			mFilterInfos.push(["Contrast", getContrastPostProcess(0.75)]);
+			mFilterInfos.push(["Brightness", getBrightnessPostProcess(-0.25)]);
+			mFilterInfos.push(["Hue", getHuePostProcess(1)]);
+			var pixelateFilter : GPixelateFilter = new GPixelateFilter(4);
 			mFilterInfos.push(["Pixelate", new GFilterPP(Vector.<GFilter>([pixelateFilter]))]);
+		}
+
+		private function getInvertPostProcess() : GFilterPP
+		{
+			var matrix : Vector.<Number> = Vector.<Number>([
+				-1,  0,  0,  0, 255,
+				0, -1,  0,  0, 255,
+				0,  0, -1,  0, 255,
+				0,  0,  0,  1,   0]);
+
+			return getNewFilterPostProcessFromColorMatrixFilter(matrix);
+		}
+
+		private static const LUMA_R : Number = 0.299;
+		private static const LUMA_G : Number = 0.587;
+		private static const LUMA_B : Number = 0.114;
+		private function getSaturationPostProcess(sat : Number) : GFilterPP
+		{
+			sat += 1;
+
+			var invSat : Number = 1 - sat;
+			var invLumR : Number = invSat * LUMA_R;
+			var invLumG : Number = invSat * LUMA_G;
+			var invLumB : Number = invSat * LUMA_B;
+
+			var matrix : Vector.<Number> = Vector.<Number>([
+				(invLumR + sat), invLumG, invLumB, 0, 0,
+				invLumR, (invLumG + sat), invLumB, 0, 0,
+				invLumR, invLumG, (invLumB + sat), 0, 0,
+				0, 0, 0, 1, 0]);
+
+			return getNewFilterPostProcessFromColorMatrixFilter(matrix);
+		}
+
+		private function getHuePostProcess(value : Number) : GFilterPP
+		{
+			value *= Math.PI;
+
+			var cos : Number = Math.cos(value);
+			var sin : Number = Math.sin(value);
+
+			var matrix : Vector.<Number> = Vector.<Number>([
+					((LUMA_R + (cos * (1 - LUMA_R))) + (sin * -(LUMA_R))), ((LUMA_G + (cos * -(LUMA_G))) + (sin * -(LUMA_G))), ((LUMA_B + (cos * -(LUMA_B))) + (sin * (1 - LUMA_B))), 0, 0,
+					((LUMA_R + (cos * -(LUMA_R))) + (sin * 0.143)), ((LUMA_G + (cos * (1 - LUMA_G))) + (sin * 0.14)), ((LUMA_B + (cos * -(LUMA_B))) + (sin * -0.283)), 0, 0,
+					((LUMA_R + (cos * -(LUMA_R))) + (sin * -((1 - LUMA_R)))), ((LUMA_G + (cos * -(LUMA_G))) + (sin * LUMA_G)), ((LUMA_B + (cos * (1 - LUMA_B))) + (sin * LUMA_B)), 0, 0,
+					0, 0, 0, 1, 0]);
+
+			return getNewFilterPostProcessFromColorMatrixFilter(matrix);
+		}
+
+		private function getContrastPostProcess(value : Number) : GFilterPP
+		{
+			var s : Number = value + 1;
+			var o : Number = 128 * (1 - s);
+
+			var matrix : Vector.<Number> = Vector.<Number>([
+				s, 0, 0, 0, o,
+				0, s, 0, 0, o,
+				0, 0, s, 0, o,
+				0, 0, 0, 1, 0]);
+
+			return getNewFilterPostProcessFromColorMatrixFilter(matrix);
+		}
+
+		private function getBrightnessPostProcess(value : Number) : GFilterPP
+		{
+			value *= 255;
+
+			var matrix : Vector.<Number> = Vector.<Number>([
+				1, 0, 0, 0, value,
+				0, 1, 0, 0, value,
+				0, 0, 1, 0, value,
+				0, 0, 0, 1, 0]);
+
+			return getNewFilterPostProcessFromColorMatrixFilter(matrix);
+		}
+
+
+		private function getNewFilterPostProcessFromColorMatrixFilter(matrix : Vector.<Number>) : GFilterPP
+		{
+			var filter : GColorMatrixFilter = new GColorMatrixFilter();
+				filter.setMatrix(matrix);
+
+			return new GFilterPP(Vector.<GFilter>([filter]));
 		}
 
 		public static function createDropShadow(distance:Number=4.0, angle:Number=0.785,
