@@ -11,6 +11,8 @@ package scenes
 
 	import components.GButton;
 
+	import flash.geom.Rectangle;
+
 	import utils.deg2rad;
 
 	public class AnimationScene extends Scene
@@ -19,7 +21,9 @@ package scenes
 		private var mStartButton : GButton;
 		private var mDelayButton : GButton;
 		private var mEgg : GSprite;
+		private var mEggBounds : Rectangle;
 		private var mTransitionLabel: GTextureText;
+
 
 		public function AnimationScene(p_name : String = "")
 		{
@@ -32,43 +36,41 @@ package scenes
 				"Bounce.easeOut",
 				"Elastic.easeOut"];
 
-			var buttonTexture : GTexture = Assets.getTexture("ButtonNormal");
+			var tex : GTexture = Assets.getTexture("ButtonNormal");
 
-			// create a button that starts the tween
 			mStartButton = GNodeFactory.createNodeWithComponent(GButton) as GButton;
-			mStartButton.setTextures(buttonTexture);
+			mStartButton.setTextures(tex);
 			mStartButton.setText("Start animation");
 			mStartButton.node.onMouseClick.add(onStartButtonTriggered);
-//			mStartButton.node.transform.x = 0;
-			mStartButton.node.transform.y = -160;
+			mStartButton.node.transform.y = 40 + ((tex.height - core.stage.stageHeight) >> 1);
 			addChild(mStartButton.node);
 
-			// this button will show you how to call a method with a delay
 			mDelayButton = GNodeFactory.createNodeWithComponent(GButton) as GButton;
-			mDelayButton.setTextures(buttonTexture);
+			mDelayButton.setTextures(tex);
 			mDelayButton.setText("Delayed call");
 			mDelayButton.node.onMouseClick.add(onDelayButtonTriggered);
-//			mDelayButton.x = mStartButton.x;
 			mDelayButton.node.transform.y = mStartButton.node.transform.y + 40;
 			addChild(mDelayButton.node);
 
-			// the Starling will be tweened
+			tex = Assets.getTexture("StarlingFront");
 			mEgg = GNodeFactory.createNodeWithComponent(GSprite) as GSprite;
-			mEgg.setTexture(Assets.getTexture("StarlingFront"));
+			mEgg.setTexture(tex);
 			addChild(mEgg.node);
+
+			mEggBounds = new Rectangle(0, 0, tex.width, tex.height);
 			resetEgg();
 
 			mTransitionLabel = GNodeFactory.createNodeWithComponent(GTextureText) as GTextureText;
 			mTransitionLabel.setTextureAtlas(Assets.getFontTexture("Ubuntu"));
 			mTransitionLabel.node.transform.y = mDelayButton.node.transform.y + 40;
-			mTransitionLabel.node.transform.alpha = 0.0; // invisible, will be shown later
+			mTransitionLabel.node.transform.alpha = 0.0;
 			addChild(mTransitionLabel.node);
 		}
 
-		private function resetEgg():void
+		private function resetEgg() : void
 		{
-			mEgg.node.transform.x = -80;
-			mEgg.node.transform.y = -40;
+			mEgg.node.transform.x = 20 + ((mEggBounds.width - core.stage.stageWidth) >> 1);
+			mEgg.node.transform.y = 120 + ((mEggBounds.height - core.stage.stageHeight) >> 1);
 			mEgg.node.transform.scaleX = mEgg.node.transform.scaleY = 1.0;
 			mEgg.node.transform.rotation = 0.0;
 		}
@@ -84,8 +86,8 @@ package scenes
 			mTransitions.push(transition);
 
 			tweenSettings['rotation'] = deg2rad(90);
-			tweenSettings['x'] = 140;
-			tweenSettings['y'] = 200;
+			tweenSettings['x'] = 300 - (mEggBounds.width/4) - (core.stage.stageWidth >> 1);
+			tweenSettings['y'] = 360 +(mEggBounds.height/4) - (core.stage.stageHeight >> 1);
 			tweenSettings['scaleX'] = 0.5;
 			tweenSettings['scaleY'] = 0.5;
 			tweenSettings['onComplete'] = function() : void {
@@ -95,12 +97,13 @@ package scenes
 			TweenLite.to(mEgg.node.transform, 2.0, tweenSettings);
 
 			mTransitionLabel.text = transition;
+			mTransitionLabel.node.transform.x = -mTransitionLabel.width >> 1;
 			mTransitionLabel.node.transform.alpha = 1.0;
 
 			TweenLite.to(mTransitionLabel.node.transform, 2.0, {ease : Linear.easeIn, 'alpha' : 0.0});
 		}
 
-		private function onDelayButtonTriggered(signal : GMouseSignal):void
+		private function onDelayButtonTriggered(signal : GMouseSignal) : void
 		{
 			mDelayButton.enabled = false;
 
@@ -118,7 +121,10 @@ package scenes
 
 		override public function dispose() : void
 		{
-			// todo: kill all tweens
+			TweenLite.killDelayedCallsTo(colorizeEgg);
+			TweenLite.killTweensOf(mEgg.node.transform);
+			TweenLite.killTweensOf(mTransitionLabel.node.transform);
+
 			mStartButton.node.onMouseClick.remove(onStartButtonTriggered);
 			mDelayButton.node.onMouseClick.remove(onDelayButtonTriggered);
 
