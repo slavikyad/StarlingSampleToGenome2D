@@ -3,6 +3,7 @@ package scenes
 	import com.genome2d.components.renderables.GTextureText;
 	import com.genome2d.core.GNodeFactory;
 	import com.genome2d.signals.GMouseSignal;
+	import com.genome2d.textures.GTexture;
 
 	import components.GButton;
 
@@ -22,18 +23,17 @@ package scenes
 			mContainer = GNodeFactory.createNodeWithComponent(BenchMarkComponent, "benchmark") as BenchMarkComponent;
 			addChild(mContainer.node);
 
+			var tex : GTexture = Assets.getTexture("ButtonNormal");
 			mStartButton = GNodeFactory.createNodeWithComponent(GButton) as GButton;
-			mStartButton.setTextures(Assets.getTexture("ButtonNormal"));
+			mStartButton.setTextures(tex);
 			mStartButton.setText("Start benchmark");
 			mStartButton.node.onMouseClick.add(onStartButtonTriggered);
-			mStartButton.node.transform.y = -140;
+			mStartButton.node.transform.y = 40 + ((tex.height - core.stage.stageHeight) >> 1);
 			addChild(mStartButton.node);
 		}
 
 		private function onStartButtonTriggered(signal : GMouseSignal) : void
 		{
-			trace("Starting benchmark");
-
 			mStartButton.node.transform.visible = false;
 
 			if (mResultText) {
@@ -45,22 +45,21 @@ package scenes
 			mContainer.start();
 		}
 
-		private function benchmarkComplete():void
+		private function benchmarkComplete() : void
 		{
 			mStartButton.node.transform.visible = true;
 
 			mResultText = GNodeFactory.createNodeWithComponent(GTextureText) as GTextureText;
 			mResultText.setTextureAtlas(Assets.getFontTexture("Ubuntu"));
 			mResultText.text = mContainer.resultString;
-//			mResultText.x = Constants.CenterX - mResultText.width / 2;
-//			mResultText.y = Constants.CenterY - mResultText.height / 2;
+			mResultText.node.transform.x = - mResultText.width >> 1;
 			addChild(mResultText.node);
 
 			mContainer.dispose();
 			System.pauseForGCIfCollectionImminent();
 		}
 
-		override public function dispose():void
+		override public function dispose() : void
 		{
 			mStartButton.node.onMouseClick.remove(onStartButtonTriggered);
 			super.dispose();
@@ -75,6 +74,8 @@ import com.genome2d.core.GNodeFactory;
 import com.genome2d.core.Genome2D;
 import com.genome2d.textures.GTexture;
 
+import flash.geom.Rectangle;
+
 import org.osflash.signals.Signal;
 
 class BenchMarkComponent extends GComponent
@@ -84,6 +85,7 @@ class BenchMarkComponent extends GComponent
 	private var mFrameCount : int;
 	private var mFailCount : int;
 	private var mWaitFrames : int;
+	private var mWorldBounds : Rectangle;
 	public var complete : Signal;
 	public var resultString : String;
 
@@ -94,6 +96,9 @@ class BenchMarkComponent extends GComponent
 		complete = new Signal();
 		mStarted = false;
 		mElapsed = 0.0;
+		mWorldBounds = new Rectangle();
+		mWorldBounds.width = node.core.stage.stageWidth;
+		mWorldBounds.height = node.core.stage.stageHeight;
 	}
 
 	public function start() : void
@@ -152,30 +157,26 @@ class BenchMarkComponent extends GComponent
 
 		var fps:int = Genome2D.getInstance().stage.frameRate;
 
-		trace("Benchmark complete!");
-		trace("FPS: " + fps);
-		trace("Number of objects: " + node.numChildren);
-
 		resultString = "Result:\n"+node.numChildren+" objects\nwith "+fps+" fps";
 		node.disposeChildren();
 		complete.dispatch();
 	}
 
-	private function addTestObjects():void
+	private function addTestObjects() : void
 	{
 		var padding:int = 15;
 		var numObjects:int = mFailCount > 20 ? 2 : 10;
 		var egg : GSprite;
 		var tex : GTexture = Assets.getTexture("BenchmarkObject");
-			tex.pivotX = -5;
-			tex.pivotY = -10;
+			tex.pivotX = -tex.width/4;
+			tex.pivotY = -tex.height/4;
 
 		for (var i:int = 0; i<numObjects; ++i)
 		{
 			egg = GNodeFactory.createNodeWithComponent(GSprite) as GSprite;
 			egg.setTexture(tex);
-			egg.node.transform.x = -160 - padding + Math.random() * 320// * (Constants.GameWidth - 2 * padding);
-			egg.node.transform.y = -240 - padding + Math.random() * 480// * (Constants.GameHeight - 2 * padding);
+			egg.node.transform.x = -(mWorldBounds.width >> 1) - padding + Math.random() * mWorldBounds.width;
+			egg.node.transform.y = -(mWorldBounds.height >> 1) - padding + Math.random() * mWorldBounds.height;
 			node.addChild(egg.node);
 		}
 	}
