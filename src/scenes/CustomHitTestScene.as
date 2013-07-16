@@ -25,8 +25,8 @@ package scenes
 			infoText.setTextureAtlas(Assets.getFontTexture("Ubuntu"));
 			infoText.text = description;
 			infoText.maxWidth = core.stage.stageWidth - 2 * PAD;
-			infoText.node.transform.x = PAD - (core.stage.stageWidth >> 1);
-			infoText.node.transform.y = 40 - (core.stage.stageHeight >> 1);
+			infoText.node.transform.x = PAD + ((-core.stage.stageWidth + infoText.width) >> 1);
+			infoText.node.transform.y = 40 + ((-core.stage.stageHeight + infoText.height) >> 1);
 			infoText.align = GTextureTextAlignType.MIDDLE_CENTER;
 			addChild(infoText.node);
 
