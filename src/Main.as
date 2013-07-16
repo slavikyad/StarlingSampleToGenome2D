@@ -39,7 +39,7 @@ package
 			stage.addEventListener(StageOrientationEvent.ORIENTATION_CHANGE, onOrientationChange);
 
 			var config : GConfig = new GConfig(getViewPortRect(), Context3DProfile.BASELINE);
-				config.enableStats = config.showExtendedStats = Capabilities.isDebugger;
+				config.enableStats = Capabilities.isDebugger;
 
 			Genome2D.getInstance().onInitialized.addOnce(onInitialized);
 			Genome2D.getInstance().init(stage, config);

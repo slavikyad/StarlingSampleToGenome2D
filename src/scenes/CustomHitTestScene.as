@@ -1,6 +1,7 @@
 package scenes
 {
 	import com.genome2d.components.renderables.GTextureText;
+	import com.genome2d.components.renderables.GTextureTextAlignType;
 	import com.genome2d.core.GNodeFactory;
 	import com.genome2d.signals.GMouseSignal;
 	import com.genome2d.textures.GTextureAlignType;
@@ -26,7 +27,7 @@ package scenes
 			infoText.maxWidth = core.stage.stageWidth - 2 * PAD;
 			infoText.node.transform.x = PAD - (core.stage.stageWidth >> 1);
 			infoText.node.transform.y = 40 - (core.stage.stageHeight >> 1);
-			infoText.align = GTextureAlignType.CENTER;
+			infoText.align = GTextureTextAlignType.MIDDLE_CENTER;
 			addChild(infoText.node);
 
 			button = GNodeFactory.createNodeWithComponent(RoundButton) as RoundButton;
