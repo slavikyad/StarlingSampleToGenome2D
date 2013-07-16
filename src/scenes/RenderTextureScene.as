@@ -2,7 +2,6 @@ package scenes
 {
 	import com.genome2d.components.renderables.GSprite;
 	import com.genome2d.components.renderables.GTextureText;
-	import com.genome2d.context.GBlendMode;
 	import com.genome2d.core.GNodeFactory;
 	import com.genome2d.signals.GMouseSignal;
 	import com.genome2d.textures.GTexture;
@@ -10,7 +9,10 @@ package scenes
 
 	import components.GButton;
 
+	import flash.display.Bitmap;
 	import flash.display.BitmapData;
+	import flash.display.BlendMode;
+	import flash.geom.ColorTransform;
 	import flash.geom.Matrix;
 	import flash.utils.Dictionary;
 
@@ -21,6 +23,9 @@ package scenes
 		private var mBrush : GTexture;
 		private var mButton:GButton;
 		private var mColors:Dictionary;
+		private var mBmp : Bitmap;
+		private var mCurrentBlendMode : String = BlendMode.NORMAL;
+		private var mCurrentColor : uint = 0xffffff;
 
 		public function RenderTextureScene(p_name : String = "")
 		{
@@ -30,6 +35,7 @@ package scenes
 			mCanvas = GNodeFactory.createNodeWithComponent(GSprite) as GSprite;
 			mCanvas.setTexture(mRenderTexture);
 			mCanvas.node.mouseEnabled = true;
+			mCanvas.node.onMouseDown.add(onDown);
 			mCanvas.node.onMouseMove.add(onMove);
 			addChild(mCanvas.node);
 
@@ -37,48 +43,59 @@ package scenes
 
 			var infoText : GTextureText = GNodeFactory.createNodeWithComponent(GTextureText) as GTextureText;
 				infoText.setTextureAtlas(Assets.getFontTexture("Ubuntu"));
-				infoText.text = "Touch the screen\nto draw!";
-//			infoText.x = Constants.CenterX - infoText.width / 2;
-//			infoText.y = Constants.CenterY - infoText.height / 2;
-			addChild(infoText.node)
+				infoText.text = "Touch the screen\nto draw!\nNot real blendMode\nfakeing through Bitmap!";
+				infoText.node.transform.x = ((core.stage.stageWidth - infoText.width)>>1) + (-core.stage.stageWidth>>1);
+			addChild(infoText.node);
 
+			var tex : GTexture = Assets.getTexture("ButtonNormal");
 			mButton = GNodeFactory.createNodeWithComponent(GButton) as GButton;
-			mButton.setTextures(Assets.getTexture("ButtonNormal"));
+			mButton.setTextures(tex);
 			mButton.setText("Mode Draw");
-//			mButton.x = int(Constants.CenterX - mButton.width / 2);
-			mButton.node.transform.y = -140;
+			mButton.node.transform.y = 40 + ((tex.height - core.stage.stageHeight) >> 1);
 			mButton.node.onMouseClick.add(onButtonTriggered);
 			addChild(mButton.node);
+
+			mBmp = new Bitmap();
 		}
 
 		private function onButtonTriggered(signal : GMouseSignal) : void
 		{
-			if(mCanvas.blendMode == GBlendMode.NORMAL)
+			if(mCurrentBlendMode == BlendMode.NORMAL)
 			{
-				mCanvas.blendMode = GBlendMode.ERASE;
+				mCurrentBlendMode = BlendMode.ERASE;
 				mButton.text = "Mode Erase";
 			}
 			else
 			{
-				mCanvas.blendMode = GBlendMode.NORMAL;
+				mCurrentBlendMode = BlendMode.NORMAL;
 				mButton.text = "Mode Draw";
 			}
 		}
 
-		private function onMove(signal:GMouseSignal) : void
+		private function onDown(signal : GMouseSignal) : void
+		{
+			mCurrentColor = Math.random() * uint.MAX_VALUE;
+		}
+
+		private function onMove(signal : GMouseSignal) : void
 		{
 			if(!signal.buttonDown) {
 				return;
 			}
 
-			var bmp : BitmapData = mBrush.bitmapData;
-			var matrix : Matrix = new Matrix();
-				matrix.translate(signal.localX,signal.localY);
+			mBmp.bitmapData = mBrush.bitmapData;
 
-			mRenderTexture.bitmapData.draw(bmp,matrix);
+			var matrix : Matrix = new Matrix();
+				matrix.translate(-32, -32);
+				matrix.rotate(Math.random() * Math.PI * 2.0);
+				matrix.translate(signal.localX, signal.localY);
+
+			var colorTransform : ColorTransform = new ColorTransform();
+				colorTransform.color = mCurrentColor;
+
+			mRenderTexture.bitmapData.draw(mBmp, matrix, colorTransform, mCurrentBlendMode);
 			mRenderTexture.invalidate();
 		}
-
 
 		override public function dispose() : void
 		{
